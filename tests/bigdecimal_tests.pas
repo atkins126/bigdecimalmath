@@ -1,6 +1,6 @@
 unit bigdecimal_tests;
 
-{$mode objfpc}{$H+}
+{$I ../../internettoolsconfig.inc}
 {$WARN 5066 off : Symbol "$1" is deprecated: "$2"}
 {$WARN 6018 off : Unreachable code}
 interface
@@ -103,6 +103,31 @@ procedure floatToDecimalFuzzing; forward;
 
 const powersOf10: array[0..16] of Int64 = (1,10,100,1000,10000,100000,1000000,10000000,100000000,1000000000,
                                            10000000000, 100000000000, 1000000000000, 10000000000000, 100000000000000, 1000000000000000, 10000000000000000);
+  Formats : TFormatSettings = (
+      CurrencyFormat: 1;
+      NegCurrFormat: 5;
+      ThousandSeparator: #0;
+      DecimalSeparator: '.';
+      CurrencyDecimals: 2;
+      DateSeparator: '-';
+      TimeSeparator: ':';
+      ListSeparator: ',';
+      CurrencyString: '$';
+      ShortDateFormat: 'y-m-d';
+      LongDateFormat: 'yyyy-mm-dd';
+      TimeAMString: 'AM';
+      TimePMString: 'PM';
+      ShortTimeFormat: 'hh:nn';
+      LongTimeFormat: 'hh:nn:ss';
+      ShortMonthNames: ('Jan','Feb','Mar','Apr','May','Jun',
+                        'Jul','Aug','Sep','Oct','Nov','Dec');
+      LongMonthNames: ('January','February','March','April','May','June',
+                       'July','August','September','October','November','December');
+      ShortDayNames: ('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
+      LongDayNames:  ('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday');
+      TwoDigitYearCenturyWindow: 50;
+    );
+
 procedure unittests;
 var
   b1: BigDecimal;
@@ -332,17 +357,17 @@ begin
   test(TryStrToBigDecimal('.e2', nil) = false);
   test(TryStrToBigDecimal('18', nil) = TRUE);
   {$ifdef FPC_HAS_TYPE_SINGLE}
-  test(StrToBigDecimal('-3.40282346638528E38').toSingle = single(StrToFloat('-3.40282346638528E38')));
+  test(StrToBigDecimal('-3.40282346638528E38').toSingle = single(StrToFloat('-3.40282346638528E38', Formats)));
   {$endif}
   {$ifdef FPC_HAS_TYPE_DOUBLE}
-  test(StrToBigDecimal('-3.40282346638528').toDouble = double(StrToFloat('-3.40282346638528')));
-  test(StrToBigDecimal('-3.40282346638528E38').toDouble = double(StrToFloat('-3.40282346638528E38')));
-  test(single(StrToBigDecimal('-3.40282346638528E38').toDouble) = single(double(StrToFloat('-3.40282346638528E38'))));
+  test(StrToBigDecimal('-3.40282346638528').toDouble = double(StrToFloat('-3.40282346638528', Formats)));
+  test(StrToBigDecimal('-3.40282346638528E38').toDouble = double(StrToFloat('-3.40282346638528E38', Formats)));
+  test(single(StrToBigDecimal('-3.40282346638528E38').toDouble) = single(double(StrToFloat('-3.40282346638528E38', Formats))));
   {$endif}
   {$ifdef FPC_HAS_TYPE_EXTENDED}
-  test(double(StrToBigDecimal('-3.40282346638528').toExtended) = double(StrToFloat('-3.40282346638528')));
-  test(double(StrToBigDecimal('-3.40282346638528E38').toExtended) = double(StrToFloat('-3.40282346638528E38')));
-  test(single(double(StrToBigDecimal('-3.40282346638528E38').toExtended)) = single(double(StrToFloat('-3.40282346638528E38'))));
+  test(double(StrToBigDecimal('-3.40282346638528').toExtended) = double(StrToFloat('-3.40282346638528', Formats)));
+  test(double(StrToBigDecimal('-3.40282346638528E38').toExtended) = double(StrToFloat('-3.40282346638528E38', Formats)));
+  test(single(double(StrToBigDecimal('-3.40282346638528E38').toExtended)) = single(double(StrToFloat('-3.40282346638528E38', Formats))));
   {$endif}
 
 
@@ -698,7 +723,8 @@ begin
 
 
   //failed fuzzy tests
-  if DIGITS_PER_ELEMENT = 5 then begin
+  if DIGITS_PER_ELEMENT = 5 Then begin
+    tempbf := default(bigdecimal);
     SetLength(tempbf.digits, 5); tempbf.digits[0] := BigDecimalBin(10000); tempbf.digits[1] := BigDecimalBin(72175); tempbf.digits[2] := BigDecimalBin(60243); tempbf.digits[3] := BigDecimalBin(66625); tempbf.digits[4] := BigDecimalBin(2434);
     tempbf.exponent:=-5; tempbf.signed:=false; tempbf.lastDigitHidden:=true;
     test(BigDecimalToStr(tempbf), '0.02434666256024372175');
@@ -816,13 +842,13 @@ begin
     e := Random(100000000) / powersOf10[random(6)];
     if random(2) = 0 then d := - e;
     if random(2) = 0 then d := - e;
-    test(BigDecimalToStr(StrToBigDecimal(FloatToStr(d)) + StrToBigDecimal(FloatToStr(e)) ), FloatToStr(d+e), FloatToStr(d)+ ' + ' + FloatToStr(e));
-    test(StrToBigDecimal(FloatToStr(d)) - StrToBigDecimal(FloatToStr(e)) , FloatToStr(d-e), FloatToStr(d)+ ' - ' + FloatToStr(e));
+    test(BigDecimalToStr(StrToBigDecimal(FloatToStr(d, Formats)) + StrToBigDecimal(FloatToStr(e, Formats)) ), FloatToStr(d+e, Formats), FloatToStr(d, Formats)+ ' + ' + FloatToStr(e, Formats));
+    test(StrToBigDecimal(FloatToStr(d, Formats)) - StrToBigDecimal(FloatToStr(e, Formats)) , FloatToStr(d-e, Formats), FloatToStr(d, Formats)+ ' - ' + FloatToStr(e, Formats));
     try
-    test(StrToBigDecimal(FloatToStr(d)) / StrToBigDecimal(FloatToStr(e)) , FloatToStr(d/e), FloatToStr(d)+ ' / ' + FloatToStr(e));
+    test(StrToBigDecimal(FloatToStr(d, Formats)) / StrToBigDecimal(FloatToStr(e, Formats)) , FloatToStr(d/e, Formats), FloatToStr(d, Formats)+ ' / ' + FloatToStr(e, Formats));
 
     except
-      writeln(FloatToStr(d)+ ' / ' + FloatToStr(e));
+      writeln(FloatToStr(d, Formats)+ ' / ' + FloatToStr(e, Formats));
     end;
 
     {$ifdef FPC_HAS_TYPE_EXTENDED}
@@ -830,7 +856,7 @@ begin
     e := Random(1000000) / powersOf10[random(7)];
     if random(2) = 0 then d := - d;
     if random(2) = 0 then e := - e;
-    test(BigDecimalToExtended(StrToBigDecimal(FloatToStrExact(d)) * StrToBigDecimal(FloatToStrExact(e)) ), FloatToStr(d*e), FloatToStrExact(d)+ ' * ' + FloatToStrExact(e));
+    test(BigDecimalToExtended(StrToBigDecimal(FloatToStrExact(d)) * StrToBigDecimal(FloatToStrExact(e)) ), FloatToStr(d*e, Formats), FloatToStrExact(d)+ ' * ' + FloatToStrExact(e));
     {$endif}
   end;
 
@@ -1287,9 +1313,9 @@ begin
   for i := 1 to fuzzCount do begin
     s := 0;
     try
-      for  j := 0 to Random(5) do s += Random(2) * power(2, Random(256) - 127);
-    except
-      on e: Exception do continue;
+      for  j := 0 to Random(5) do s += Random(2) * power(2, Random(256) - 127);  //this can give an exception but it is catched
+    except                                                                       //so do not worry about it
+      on e: Exception do continue;                                               //just run it without a debugger
     end;
     checkSingleRoundTripPM(s);
   end;
